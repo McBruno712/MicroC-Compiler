@@ -8,5 +8,46 @@ import MachineLang
 
 -- Implementar
 generate :: Program -> Code
-generate = undefined
+generate (Program ((Decl def):cmpStmts)) = [SKIP] ++ (generate (Program cmpStmts))
+generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Program cmpStmts))
+    where
+        machineNot  = [JMPZ 3, PUSH 0, JUMP 2, PUSH 1]
+        machineAnd  = [MUL]
+        machineEqu  = [CMP] ++ machineNot
+        machineLess = [CMP, PUSH 1, ADD] ++ machineNot
+        machineAnd1 = [PUSH 1] ++ machineAnd --evita que se cuelgue si la condicion del If o While es un Assign
 
+        stmt2Code :: Stmt -> Code
+        stmt2Code (StmtExpr expr) = exp2Code expr
+        stmt2Code (If expr bodyIf bodyElse) 
+            = (exp2Code expr) ++ machineAnd1 ++ [JMPZ ((length bodyIf)+2)] ++ (generate (Program (map (Com) bodyIf)))
+                ++ [JUMP ((length bodyElse)+1)] ++ (generate (Program (map (Com) bodyElse)))
+        stmt2Code (While expr body)
+            = (exp2Code expr) ++ machineAnd1 ++ [JMPZ ((length body)+2)] ++ (generate (Program (map (Com) body)))
+                ++ [JUMP ((-(length body))-1)]
+        stmt2Code (PutChar expr) = (exp2Code expr) ++ [WRITE]
+
+        exp2Code :: Expr -> Code
+        exp2Code (Var name)     = [LOAD name]
+        exp2Code (CharLit chr)  = [PUSH (toInteger (fromEnum chr))]
+        exp2Code (NatLit n)     = [PUSH n]
+        exp2Code (GetChar)      = [READ]
+        exp2Code (Unary uop expr) 
+            = case uop of
+                (Not) -> (exp2Code expr) ++ machineNot
+                (Neg) -> (exp2Code expr) ++ [NEG]
+        exp2Code (Binary bop expr1 expr2) 
+            = case bop of
+                (Or)    -> (exp2Code expr1) ++ machineNot ++ (exp2Code expr2) ++ machineNot ++ machineAnd ++ machineNot
+                _       -> (exp2Code expr1) ++ (exp2Code expr2) ++ code
+                    where 
+                        code = case bop of          
+                                (And)   -> machineAnd
+                                (Equ)   -> machineEqu
+                                (Less)  -> machineLess
+                                (Plus)  -> [ADD]
+                                (Minus) -> [SUB]
+                                (Mult)  -> [MUL]
+                                (Div)   -> [DIV]
+                                (Mod)   -> [MOD]
+        exp2Code (Assign name expr) = (exp2Code expr) ++ [STORE name] --ATENCION: AGREGAR && 1 AL IF Y WHILE POR SI LA EXPR ES UN ASSIGN
