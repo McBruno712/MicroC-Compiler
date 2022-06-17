@@ -15,19 +15,19 @@ generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Progra
         machineAnd  = [MUL]
         machineEqu  = [CMP] ++ machineNot
         machineLess = [CMP, PUSH 1, ADD] ++ machineNot
-        machinePop  = [JMPZ 1]
+        machinePop  = [JMPZ 1, SKIP]
 
         stmt2Code :: Stmt -> Code
         stmt2Code (StmtExpr expr) = (exp2Code expr) ++ machinePop
         stmt2Code (If expr bodyIf bodyElse) 
             = (exp2Code expr) ++ [JMPZ ((length codeBodyIf)+2)] ++ codeBodyIf
-                ++ [JUMP ((length codeBodyEl)+1)] ++ codeBodyEl
+                ++ [JUMP ((length codeBodyEl)+1)] ++ codeBodyEl ++ [SKIP] --el SKIP es por si es la ultima instruccion
             where 
                 codeBodyIf = (generate (Program (map (Com) bodyIf)))
                 codeBodyEl = (generate (Program (map (Com) bodyElse)))
         stmt2Code (While expr body)
             = (exp2Code expr) ++ [JMPZ ((length codeBody)+2)] ++ codeBody
-                ++ [JUMP ((-(length codeBody))-1)]
+                ++ [JUMP ((-(length codeBody))-(length (exp2Code expr))-1), SKIP]
             where
                 codeBody = (generate (Program (map (Com) body)))
         stmt2Code (PutChar expr) = (exp2Code expr) ++ [WRITE]
