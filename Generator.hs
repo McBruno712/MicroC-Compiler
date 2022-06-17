@@ -15,15 +15,15 @@ generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Progra
         machineAnd  = [MUL]
         machineEqu  = [CMP] ++ machineNot
         machineLess = [CMP, PUSH 1, ADD] ++ machineNot
-        machineAnd1 = [PUSH 1] ++ machineAnd --evita que se cuelgue si la condicion del If o While es un Assign
+        machinePop  = [JMPZ 1]
 
         stmt2Code :: Stmt -> Code
-        stmt2Code (StmtExpr expr) = exp2Code expr
+        stmt2Code (StmtExpr expr) = (exp2Code expr) ++ machinePop
         stmt2Code (If expr bodyIf bodyElse) 
-            = (exp2Code expr) ++ machineAnd1 ++ [JMPZ ((length bodyIf)+2)] ++ (generate (Program (map (Com) bodyIf)))
+            = (exp2Code expr) ++ [JMPZ ((length bodyIf)+2)] ++ (generate (Program (map (Com) bodyIf)))
                 ++ [JUMP ((length bodyElse)+1)] ++ (generate (Program (map (Com) bodyElse)))
         stmt2Code (While expr body)
-            = (exp2Code expr) ++ machineAnd1 ++ [JMPZ ((length body)+2)] ++ (generate (Program (map (Com) body)))
+            = (exp2Code expr) ++ [JMPZ ((length body)+2)] ++ (generate (Program (map (Com) body)))
                 ++ [JUMP ((-(length body))-1)]
         stmt2Code (PutChar expr) = (exp2Code expr) ++ [WRITE]
 
@@ -50,4 +50,4 @@ generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Progra
                                 (Mult)  -> [MUL]
                                 (Div)   -> [DIV]
                                 (Mod)   -> [MOD]
-        exp2Code (Assign name expr) = (exp2Code expr) ++ [STORE name] --ATENCION: AGREGAR && 1 AL IF Y WHILE POR SI LA EXPR ES UN ASSIGN
+        exp2Code (Assign name expr) = (exp2Code expr) ++ [STORE name, LOAD name]
