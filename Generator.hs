@@ -20,11 +20,16 @@ generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Progra
         stmt2Code :: Stmt -> Code
         stmt2Code (StmtExpr expr) = (exp2Code expr) ++ machinePop
         stmt2Code (If expr bodyIf bodyElse) 
-            = (exp2Code expr) ++ [JMPZ ((length bodyIf)+2)] ++ (generate (Program (map (Com) bodyIf)))
-                ++ [JUMP ((length bodyElse)+1)] ++ (generate (Program (map (Com) bodyElse)))
+            = (exp2Code expr) ++ [JMPZ ((length codeBodyIf)+2)] ++ codeBodyIf
+                ++ [JUMP ((length codeBodyEl)+1)] ++ codeBodyEl
+            where 
+                codeBodyIf = (generate (Program (map (Com) bodyIf)))
+                codeBodyEl = (generate (Program (map (Com) bodyElse)))
         stmt2Code (While expr body)
-            = (exp2Code expr) ++ [JMPZ ((length body)+2)] ++ (generate (Program (map (Com) body)))
-                ++ [JUMP ((-(length body))-1)]
+            = (exp2Code expr) ++ [JMPZ ((length codeBody)+2)] ++ codeBody
+                ++ [JUMP ((-(length codeBody))-1)]
+            where
+                codeBody = (generate (Program (map (Com) body)))
         stmt2Code (PutChar expr) = (exp2Code expr) ++ [WRITE]
 
         exp2Code :: Expr -> Code
