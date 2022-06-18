@@ -1,5 +1,7 @@
 -- LABORATORIO DE PROGRAMACION FUNCIONAL 2022
 -- MODULO DE CHEQUEO DE NOMBRES Y TIPOS
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Redundant bracket" #-}
 
 module TypeChecker where
 
@@ -45,3 +47,4 @@ checkNames declaradas (Program ((Com stmt):cmpStmts)) --la siguiente instruccion
       expPsr declaradas (Assign name expr)   
          = if (elem name declaradas) then (expPsr declaradas expr) 
             else ((Undefined name):(expPsr declaradas expr))
+                        
