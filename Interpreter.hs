@@ -15,7 +15,7 @@ interp :: Code -> Code -> Conf -> IO Conf
 interp _    []            conf = return conf
 interp prev ( SKIP:next)  conf = interp (SKIP:prev) next conf
 interp prev ((PUSH  i):next) (  stk, env) = interp ((PUSH  i):prev) next (i:stk, env)
-interp prev ((STORE v):next) (i:stk, env) = interp ((STORE v):prev) next (stk, (v, i):env)
+interp prev ((STORE v):next) (i:stk, env) = interp ((STORE v):prev) next (stk, (v, i):(filter ((/= v).fst) env))
 interp prev ( MOD:next)    (x:y:stk, env) = interp (MOD:prev) next ((x `mod` y):stk, env)
 interp prev ( DIV:next)    (x:y:stk, env) = interp (DIV:prev) next ((x `div` y):stk, env)
 interp prev ( MUL:next)    (x:y:stk, env) = interp (MUL:prev) next ((x   *   y):stk, env)
@@ -43,6 +43,6 @@ interp prev ((JUMP i):next) conf
       else (interp (drop i prev) ((reverse (take (abs i) prev)) ++ (JUMP i):next) conf)
 interp prev ((JMPZ i):next) (t:stk, env)
    = if t == 0 then
-      if (i >= 0) then (interp ((reverse (take (i-1) next)) ++ (JUMP i):prev) (drop (i-1) next) (stk, env))
-         else (interp (drop i prev) ((reverse (take (abs i) prev)) ++ (JUMP i):next) (stk, env))
+      if (i >= 0) then (interp ((reverse (take (i-1) next)) ++ (JMPZ i):prev) (drop (i-1) next) (stk, env))
+         else (interp (drop i prev) ((reverse (take (abs i) prev)) ++ (JMPZ i):next) (stk, env))
       else interp ((JMPZ i):prev) next (stk, env)

@@ -8,10 +8,11 @@ import MachineLang
 
 -- Implementar
 generate :: Program -> Code
+generate (Program []) = []
 generate (Program ((Decl def):cmpStmts)) = [SKIP] ++ (generate (Program cmpStmts))
 generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Program cmpStmts))
     where
-        machineNot  = [JMPZ 3, PUSH 0, JUMP 2, PUSH 1]
+        machineNot  = [JMPZ 3, PUSH 0, JUMP 2, PUSH 1, SKIP]
         machineAnd  = [MUL]
         machineEqu  = [CMP] ++ machineNot
         machineLess = [CMP, PUSH 1, ADD] ++ machineNot
@@ -27,7 +28,7 @@ generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Progra
                 codeBodyEl = (generate (Program (map (Com) bodyElse)))
         stmt2Code (While expr body)
             = (exp2Code expr) ++ [JMPZ ((length codeBody)+2)] ++ codeBody
-                ++ [JUMP ((-(length codeBody))-(length (exp2Code expr))-1), SKIP]
+                ++ [JUMP (-((length codeBody)+(length (exp2Code expr))+1)), SKIP]
             where
                 codeBody = (generate (Program (map (Com) body)))
         stmt2Code (PutChar expr) = (exp2Code expr) ++ [WRITE]
@@ -43,8 +44,8 @@ generate (Program ((Com stmt):cmpStmts)) = (stmt2Code stmt) ++ (generate (Progra
                 (Neg) -> (exp2Code expr) ++ [NEG]
         exp2Code (Binary bop expr1 expr2) 
             = case bop of
-                (Or)    -> (exp2Code expr1) ++ machineNot ++ (exp2Code expr2) ++ machineNot ++ machineAnd ++ machineNot
-                _       -> (exp2Code expr1) ++ (exp2Code expr2) ++ code
+                (Or)    -> (exp2Code expr2) ++ machineNot ++ (exp2Code expr1) ++ machineNot ++ machineAnd ++ machineNot
+                _       -> (exp2Code expr2) ++ (exp2Code expr1) ++ code
                     where 
                         code = case bop of          
                                 (And)   -> machineAnd

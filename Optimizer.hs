@@ -44,22 +44,38 @@ optimize (Program cmpStmts) = Program (eliminateDeadCode (optimizeStmtExprs cmpS
         optimizeExpr (Binary Div (NatLit x) (NatLit y)) = NatLit (div x y)
         optimizeExpr (Binary Mod (NatLit x) (NatLit y)) = NatLit (mod x y)
 
+        --casos recursivos
         optimizeExpr (Unary (Not) expr) = Unary (Not) (optimizeExpr expr)
         optimizeExpr (Unary (Neg) expr) = Unary (Neg) (optimizeExpr expr)
 
-        optimizeExpr (Binary Plus expr1 expr2) = optimizeExpr (Binary (Plus) (optimizeExpr expr1) (optimizeExpr expr2))
-        optimizeExpr (Binary Mult expr1 expr2) = optimizeExpr (Binary (Mult) (optimizeExpr expr1) (optimizeExpr expr2))
-        optimizeExpr (Binary And expr1 expr2) = optimizeExpr (Binary (And) (optimizeExpr expr1) (optimizeExpr expr2))
-        optimizeExpr (Binary Or expr1 expr2) = optimizeExpr (Binary (Or) (optimizeExpr expr1) (optimizeExpr expr2))
+        optimizeExpr (Binary bop expr1 expr2) = bopRec bop expr1 expr2
+            where
+                bopRec :: BOp -> Expr -> Expr -> Expr 
+                bopRec bop expr1 expr2
+                    = if ((optimizeExpr expr1) /= expr1) || ((optimizeExpr expr2) /= expr2)
+                        then (optimizeExpr (Binary (bop) (optimizeExpr expr1) (optimizeExpr expr2)))
+                        else (Binary (bop) (optimizeExpr expr1) (optimizeExpr expr2))                        
+
+            
+        -- optimizeExpr (Binary Plus expr1 expr2) = optimizeExpr (Binary (Plus) (optimizeExpr expr1) (optimizeExpr expr2))
+        -- optimizeExpr (Binary Mult expr1 expr2) = optimizeExpr (Binary (Mult) (optimizeExpr expr1) (optimizeExpr expr2))
+        -- optimizeExpr (Binary And expr1 expr2) = optimizeExpr (Binary (And) (optimizeExpr expr1) (optimizeExpr expr2))
+        -- optimizeExpr (Binary Or expr1 expr2) = optimizeExpr (Binary (Or) (optimizeExpr expr1) (optimizeExpr expr2))
 
         optimizeExpr (Assign name expr) = Assign name (optimizeExpr expr)
 
+        --en los demas casos no hacer nada
+        optimizeExpr expr = expr
+
         optimizeStmtExprs :: [CompoundStmt] -> [CompoundStmt]
+        optimizeStmtExprs [] = []
         optimizeStmtExprs ((Decl vdef):cmpStmts) = (Decl vdef):(optimizeStmtExprs cmpStmts)
         optimizeStmtExprs ((Com (StmtExpr expr)):cmpStmts) = (Com (StmtExpr (optimizeExpr expr))):(optimizeStmtExprs cmpStmts)
         optimizeStmtExprs ((Com (PutChar expr)):cmpStmts) = (Com (PutChar (optimizeExpr expr))):(optimizeStmtExprs cmpStmts)        
+        optimizeStmtExprs (cStmt:cmpStmts) = cStmt:(optimizeStmtExprs cmpStmts) 
 
         eliminateDeadCode :: [CompoundStmt] -> [CompoundStmt]
+        eliminateDeadCode [] = []
         eliminateDeadCode ((Com (If (NatLit n) bodyIf bodyElse)):cmpStmts) = 
             if n /= 0 then eliminateDeadCode ((map (Com) bodyIf) ++ cmpStmts)
                 else eliminateDeadCode ((map (Com) bodyElse) ++ cmpStmts)
