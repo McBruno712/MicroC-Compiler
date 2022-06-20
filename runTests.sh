@@ -18,7 +18,7 @@ do
    fi
    printf "\n0$i ejecutado con exito\n"
 done
-for i in {10..39}
+for i in {10..40}
 do
    touch casos/caso$i.myopt
    touch casos/caso$i.mymc
