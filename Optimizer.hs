@@ -8,7 +8,7 @@ import Syntax
 
 -- Implementar
 optimize :: Program -> Program
-optimize (Program cmpStmts) = Program (eliminateDeadCode (optimizeStmtExprs cmpStmts))
+optimize (Program cmpStmts) = Program (eliminateDeadCode (optimizeCmpStmts cmpStmts))
    where         
         optimizeExpr :: Expr -> Expr
         -- neutro a la izquierda
@@ -67,12 +67,19 @@ optimize (Program cmpStmts) = Program (eliminateDeadCode (optimizeStmtExprs cmpS
         --en los demas casos no hacer nada
         optimizeExpr expr = expr
 
-        optimizeStmtExprs :: [CompoundStmt] -> [CompoundStmt]
-        optimizeStmtExprs [] = []
-        optimizeStmtExprs ((Decl vdef):cmpStmts) = (Decl vdef):(optimizeStmtExprs cmpStmts)
-        optimizeStmtExprs ((Com (StmtExpr expr)):cmpStmts) = (Com (StmtExpr (optimizeExpr expr))):(optimizeStmtExprs cmpStmts)
-        optimizeStmtExprs ((Com (PutChar expr)):cmpStmts) = (Com (PutChar (optimizeExpr expr))):(optimizeStmtExprs cmpStmts)        
-        optimizeStmtExprs (cStmt:cmpStmts) = cStmt:(optimizeStmtExprs cmpStmts) 
+        com2Stmt :: CompoundStmt -> Stmt
+        com2Stmt (Com stmt) = stmt
+
+        optimizeCmpStmts :: [CompoundStmt] -> [CompoundStmt]
+        optimizeCmpStmts [] = []
+        optimizeCmpStmts ((Decl vdef):cmpStmts) = (Decl vdef):(optimizeCmpStmts cmpStmts)
+        optimizeCmpStmts ((Com (StmtExpr expr)):cmpStmts) = (Com (StmtExpr (optimizeExpr expr))):(optimizeCmpStmts cmpStmts)
+        optimizeCmpStmts ((Com (PutChar expr)):cmpStmts) = (Com (PutChar (optimizeExpr expr))):(optimizeCmpStmts cmpStmts)        
+        optimizeCmpStmts ((Com (If expr bodyIf bodyElse)):cmpStmts) 
+            = (Com (If (optimizeExpr expr) (map (com2Stmt) (optimizeCmpStmts (map (Com) bodyIf))) (map (com2Stmt) (optimizeCmpStmts (map (Com) bodyElse))))):(optimizeCmpStmts cmpStmts)
+        optimizeCmpStmts ((Com (While expr body)):cmpStmts) 
+            = (Com (While (optimizeExpr expr) (map com2Stmt (optimizeCmpStmts (map (Com) body))))):(optimizeCmpStmts cmpStmts)
+        --optimizeCmpStmts (cStmt:cmpStmts) = cStmt:(optimizeCmpStmts cmpStmts) 
 
         eliminateDeadCode :: [CompoundStmt] -> [CompoundStmt]
         eliminateDeadCode [] = []

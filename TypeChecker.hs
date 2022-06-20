@@ -89,9 +89,10 @@ checkTypes declaradas (Program ((Com stmt):cmpStmts)) = (stmtPsr declaradas stmt
          = case ty of
             (Just TyChar)  -> (expPsr declaradas (Just TyInt) expr1) ++ (expPsr declaradas (Just TyInt) expr2) ++ [Expected TyChar TyInt]
             _              -> (expPsr declaradas (Just TyInt) expr1) ++ (expPsr declaradas (Just TyInt) expr2)
-      expPsr declaradas ty (Assign name expr) --no se si esta bien que Assign sea considerado Int, pero es lo que hace C
+      expPsr declaradas ty (Assign name expr) 
          = case ty of
             (Just TyChar)  -> (expPsr declaradas (Just (exprType declaradas (Var name))) expr) ++ [Expected TyChar TyInt]
+            (Just TyInt)   -> (expPsr declaradas (Just (exprType declaradas (Var name))) expr) ++ [Expected TyInt TyChar]
             _              -> (expPsr declaradas (Just (exprType declaradas (Var name))) expr)
       expPsr declaradas ty (CharLit _) 
          = case ty of
@@ -107,7 +108,8 @@ checkTypes declaradas (Program ((Com stmt):cmpStmts)) = (stmtPsr declaradas stmt
             _              -> []
 
       exprType :: [VarDef] -> Expr -> Type
-      exprType declaradas (Var name) = if (elem (VarDef TyInt name) declaradas) then TyInt else TyChar
-      exprType _ (CharLit _)         = TyChar
-      exprType _ (GetChar)           = TyChar
-      exprType _ _                   = TyInt --en este cae Assign tambien, no se si esta bien
+      exprType declaradas (Var name)      = if (elem (VarDef TyInt name) declaradas) then TyInt else TyChar
+      exprType declaradas (Assign name _) = if (elem (VarDef TyInt name) declaradas) then TyInt else TyChar
+      exprType _ (CharLit _)              = TyChar
+      exprType _ (GetChar)                = TyChar
+      exprType _ _                        = TyInt
